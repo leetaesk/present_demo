@@ -10,6 +10,8 @@ import { SpeedCalculator } from '@/lib/analyzer/speedCalculator';
 import { PauseDetector } from '@/lib/analyzer/pauseDetector';
 import { SectionTimer, type Section } from '@/lib/timer/sectionTimer';
 import { useLiveStore } from '@/store/liveStore';
+import { loadSettings, saveSettings, DEFAULT_SETTINGS } from '@/lib/storage/settings';
+import { saveSession, loadSessions, clearSessions, type SessionRecord } from '@/lib/storage/sessions';
 
 interface FinalEntry {
   text: string;
@@ -38,6 +40,8 @@ export default function TestPage() {
   const [interim, setInterim] = useState('');
   const [finals, setFinals] = useState<FinalEntry[]>([]);
   const [vadLog, setVadLog] = useState<string[]>([]);
+  const [savedSessions, setSavedSessions] = useState<SessionRecord[]>([]);
+  const sessionStartRef = useRef<number>(0);
 
   const fillerCounts = useLiveStore((s) => s.fillerCounts);
   const speedHistory = useLiveStore((s) => s.speedHistory);
@@ -75,6 +79,7 @@ export default function TestPage() {
   const start = async () => {
     await resumeAudioContext();
     reset();
+    sessionStartRef.current = Date.now();
     sectionTimerRef.current.setSections(DEMO_SECTIONS);
     sectionTimerRef.current.start();
 
@@ -139,7 +144,7 @@ export default function TestPage() {
     }
   };
 
-  const stop = () => {
+  const stop = async () => {
     pipelineRef.current?.stop();
     pipelineRef.current = null;
     clientRef.current?.close();
@@ -148,11 +153,27 @@ export default function TestPage() {
     sectionTimerRef.current.stop();
     setRunning(false);
     setConnected(false);
+
+    const state = useLiveStore.getState();
+    try {
+      await saveSession({
+        timestamp: sessionStartRef.current,
+        duration: Math.round((Date.now() - sessionStartRef.current) / 1000),
+        fillerCounts: state.fillerCounts,
+        speedHistory: state.speedHistory,
+        pauseCount: state.pauseCount,
+        sections: DEMO_SECTIONS,
+      });
+      const all = await loadSessions();
+      setSavedSessions(all);
+    } catch (err) {
+      console.error('[test] saveSession failed', err);
+    }
   };
 
   return (
     <div className="min-h-screen bg-black text-white p-8 font-mono text-sm">
-      <h1 className="text-xl mb-6">PRESENT:AI-ON — TASK 03~07 검증</h1>
+      <h1 className="text-xl mb-6">PRESENT:AI-ON — TASK 03~08 검증</h1>
 
       {/* 컨트롤 */}
       <div className="flex gap-3 mb-6">
@@ -298,11 +319,62 @@ export default function TestPage() {
       </section>
 
       {/* VAD */}
-      <section>
+      <section className="mb-6">
         <div className="text-xs text-zinc-400 mb-1">VAD (최근 6)</div>
         <ul className="space-y-1 text-cyan-300 text-xs">
           {vadLog.length === 0 ? <li>—</li> : vadLog.map((v, i) => <li key={i}>{v}</li>)}
         </ul>
+      </section>
+
+      {/* Storage */}
+      <section className="border border-zinc-700 rounded p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-xs text-zinc-400">세션 히스토리 (IndexedDB)</div>
+          <div className="flex gap-2">
+            <button
+              onClick={async () => { const all = await loadSessions(); setSavedSessions(all); }}
+              className="px-2 py-1 bg-zinc-700 rounded hover:bg-zinc-600 text-xs"
+            >
+              불러오기
+            </button>
+            <button
+              onClick={async () => { await clearSessions(); setSavedSessions([]); }}
+              className="px-2 py-1 bg-red-900 rounded hover:bg-red-800 text-xs"
+            >
+              전체 삭제
+            </button>
+          </div>
+        </div>
+        <div className="text-xs text-zinc-400 mb-2">
+          LocalStorage 설정: {JSON.stringify(loadSettings().fillerWords.slice(0, 3))}... (필러 {loadSettings().fillerWords.length}개)
+          <button
+            onClick={() => { saveSettings({ ...DEFAULT_SETTINGS }); alert('기본값으로 저장됨'); }}
+            className="ml-2 px-2 py-0.5 bg-zinc-700 rounded hover:bg-zinc-600"
+          >
+            기본값 저장
+          </button>
+        </div>
+        {savedSessions.length === 0 ? (
+          <div className="text-zinc-600 text-xs">없음 — 세션 종료 시 자동 저장됩니다</div>
+        ) : (
+          <ul className="space-y-2">
+            {savedSessions.map((s) => (
+              <li key={s.id} className="text-xs border border-zinc-800 rounded p-2">
+                <span className="text-zinc-400">{new Date(s.timestamp).toLocaleTimeString()}</span>
+                <span className="ml-2">{s.duration}초</span>
+                <span className="ml-2 text-orange-300">
+                  filler {Object.values(s.fillerCounts).reduce((a, b) => a + b, 0)}회
+                </span>
+                <span className="ml-2 text-blue-300">pause {s.pauseCount}회</span>
+                {s.speedHistory.length > 0 && (
+                  <span className="ml-2 text-green-300">
+                    avg {(s.speedHistory.reduce((a, b) => a + b, 0) / s.speedHistory.length).toFixed(1)} 음절/초
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

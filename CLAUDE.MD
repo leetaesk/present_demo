@@ -48,36 +48,36 @@
 
 ```
 public/
-└── audio-worklet.js                 # PCM16 프로세서 (JS. Next.js Turbopack이 TS AudioWorklet 빌드 불안정해서 JS로 분리.)
+└── audio-worklet.js                 # ✅ PCM16 프로세서 (JS. Next.js Turbopack이 TS AudioWorklet 빌드 불안정해서 JS로 분리.)
 
 src/
 ├── app/
-│   ├── api/deepgram-token/route.ts   # Edge: API Key → 임시 JWT 발급 (bearer subprotocol용)
-│   ├── test/page.tsx                 # 검증용 임시 페이지. TASK_02 끝나면 제거.
-│   ├── onboarding/page.tsx
-│   ├── prepare/page.tsx
-│   ├── live/page.tsx
-│   └── summary/page.tsx
+│   ├── api/deepgram-token/route.ts   # ✅ Edge: API Key → 임시 JWT 발급 (bearer subprotocol용)
+│   ├── test/page.tsx                 # ✅ TASK_02~08 통합 검증 페이지 (제거 예정)
+│   ├── live/page.tsx                 # ✅ 실시간 발표 화면
+│   ├── onboarding/page.tsx           # ⏳ 미구현
+│   ├── prepare/page.tsx              # ⏳ 미구현
+│   └── summary/page.tsx              # ⏳ 미구현
 ├── lib/
 │   ├── audio/
-│   │   ├── context.ts               # 싱글턴 AudioContext @ 16kHz
-│   │   ├── worklet.ts               # mic → AudioWorkletNode 초기화 wrapper
-│   │   └── soundCue.ts              # oscillator 효과음
+│   │   ├── context.ts               # ✅ 싱글턴 AudioContext @ 16kHz
+│   │   ├── worklet.ts               # ✅ mic → AudioWorkletNode 초기화 wrapper (addModule 중복 방지)
+│   │   └── soundCue.ts              # ✅ oscillator 효과음 5종
 │   ├── stt/
-│   │   └── deepgramClient.ts        # Deepgram WSS 연결
+│   │   └── deepgramClient.ts        # ✅ Deepgram WSS 연결
 │   ├── analyzer/
-│   │   ├── fillerDetector.ts
-│   │   ├── speedCalculator.ts
-│   │   └── pauseDetector.ts
-│   ├── timer/sectionTimer.ts
+│   │   ├── fillerDetector.ts        # ✅ 문자열 매칭 filler 탐지
+│   │   ├── speedCalculator.ts       # ✅ 한국어 음절/초 계산
+│   │   └── pauseDetector.ts         # ✅ 3초 공백 감지 + TTS
+│   ├── timer/sectionTimer.ts        # ✅ 섹션별 제한시간 추적
 │   └── storage/
-│       ├── settings.ts              # LocalStorage
-│       └── sessions.ts              # IndexedDB
-├── store/liveStore.ts               # Zustand
+│       ├── settings.ts              # ✅ LocalStorage 설정 저장/불러오기
+│       └── sessions.ts              # ✅ IndexedDB 세션 히스토리
+├── store/liveStore.ts               # ✅ Zustand (filler/speed/pause/section 상태)
 └── components/
-    ├── LiveDashboard.tsx
-    ├── SectionProgress.tsx
-    └── SummaryChart.tsx
+    ├── LiveDashboard.tsx            # ✅ 실시간 대시보드
+    ├── SectionProgress.tsx          # ✅ 섹션 진행 바
+    └── SummaryChart.tsx             # ⏳ 미구현
 ```
 
 ---
@@ -253,7 +253,8 @@ DEEPGRAM_API_KEY=your_key  # Edge Route에서만 사용. NEXT_PUBLIC_ 없음.
 - ✅ **TASK_05** — Speed Calculator (`lib/analyzer/speedCalculator.ts`). 한국어 음절/초 계산, 기준 4~6.
 - ✅ **TASK_06** — Pause Detector (`lib/analyzer/pauseDetector.ts`). UtteranceEnd 후 3초 타이머 → pause cue + TTS.
 - ✅ **TASK_07** — Section Timer (`lib/timer/sectionTimer.ts`). 섹션별 제한시간 추적, 초과 시 section cue. `addModule` 중복 등록 버그 수정 (`moduleLoaded` 플래그).
-- ⏳ TASK_08~09 대기
+- ✅ **TASK_08** — Storage (`lib/storage/settings.ts` LocalStorage, `lib/storage/sessions.ts` IndexedDB) + Live UI (`app/live/page.tsx`, `components/LiveDashboard.tsx`, `components/SectionProgress.tsx`).
+- ⏳ TASK_09 대기 (prepare / summary / onboarding)
 
 ### TASK_02 핵심 발견
 - **Deepgram `filler_words`는 영어 전용** (`uh/um/mhmm/...`만 태깅). 한국어는 효과 없음. → **TASK_04 fillerDetector는 [B] 문자열 매칭 확정** (DEFAULT_SETTINGS.fillerWords).
