@@ -248,7 +248,12 @@ DEEPGRAM_API_KEY=your_key  # Edge Route에서만 사용. NEXT_PUBLIC_ 없음.
 
 - ✅ **TASK_01** — Next.js 16 프로젝트 세팅, `/api/deepgram-token` Edge Route.
 - ✅ **TASK_02** — 전체 파이프라인 검증 완료. mic → PCM16 → Deepgram WSS → transcript/VAD 정상 동작.
-- ⏳ TASK_03~09 대기
+- ✅ **TASK_03** — Sound Cue Engine (`lib/audio/soundCue.ts`). oscillator 5종 (filler/fast/slow/section/pause).
+- ✅ **TASK_04** — Filler Detector (`lib/analyzer/fillerDetector.ts`) + Zustand store (`store/liveStore.ts`). 문자열 매칭, DEFAULT_FILLER_WORDS에 "햄버거" 포함.
+- ✅ **TASK_05** — Speed Calculator (`lib/analyzer/speedCalculator.ts`). 한국어 음절/초 계산, 기준 4~6.
+- ✅ **TASK_06** — Pause Detector (`lib/analyzer/pauseDetector.ts`). UtteranceEnd 후 3초 타이머 → pause cue + TTS.
+- ✅ **TASK_07** — Section Timer (`lib/timer/sectionTimer.ts`). 섹션별 제한시간 추적, 초과 시 section cue. `addModule` 중복 등록 버그 수정 (`moduleLoaded` 플래그).
+- ⏳ TASK_08~09 대기
 
 ### TASK_02 핵심 발견
 - **Deepgram `filler_words`는 영어 전용** (`uh/um/mhmm/...`만 태깅). 한국어는 효과 없음. → **TASK_04 fillerDetector는 [B] 문자열 매칭 확정** (DEFAULT_SETTINGS.fillerWords).

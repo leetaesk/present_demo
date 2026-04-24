@@ -8,6 +8,7 @@ import { DeepgramClient, type DeepgramWord } from '@/lib/stt/deepgramClient';
 import { FillerDetector } from '@/lib/analyzer/fillerDetector';
 import { SpeedCalculator } from '@/lib/analyzer/speedCalculator';
 import { PauseDetector } from '@/lib/analyzer/pauseDetector';
+import { SectionTimer, type Section } from '@/lib/timer/sectionTimer';
 import { useLiveStore } from '@/store/liveStore';
 
 interface FinalEntry {
@@ -24,6 +25,12 @@ const CUE_BUTTONS: { label: string; type: CueType; desc: string }[] = [
   { label: '3초공백', type: 'pause', desc: '220Hz×2' },
 ];
 
+const DEMO_SECTIONS: Section[] = [
+  { name: '도입', duration: 10, keyword: '도입' },
+  { name: '본론', duration: 20, keyword: '본론' },
+  { name: '마무리', duration: 10, keyword: '마무리' },
+];
+
 export default function TestPage() {
   const [running, setRunning] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -35,13 +42,20 @@ export default function TestPage() {
   const fillerCounts = useLiveStore((s) => s.fillerCounts);
   const speedHistory = useLiveStore((s) => s.speedHistory);
   const pauseCount = useLiveStore((s) => s.pauseCount);
+  const sectionIndex = useLiveStore((s) => s.sectionIndex);
+  const sectionElapsed = useLiveStore((s) => s.sectionElapsed);
   const reset = useLiveStore((s) => s.reset);
 
   const pipelineRef = useRef<AudioPipeline | null>(null);
   const clientRef = useRef<DeepgramClient | null>(null);
   const fillerRef = useRef(new FillerDetector());
   const speedRef = useRef(new SpeedCalculator());
-  const pauseRef = useRef(new PauseDetector());
+  const sectionTimerRef = useRef(new SectionTimer(DEMO_SECTIONS));
+  const pauseRef = useRef(
+    new PauseDetector({
+      getCurrentKeyword: () => sectionTimerRef.current.currentKeyword(),
+    }),
+  );
 
   const stamp = () => {
     const d = new Date();
@@ -54,9 +68,15 @@ export default function TestPage() {
       ? speedHistory.reduce((a, b) => a + b, 0) / speedHistory.length
       : null;
 
+  const currentSection = DEMO_SECTIONS[sectionIndex];
+  const sectionLimit = currentSection?.duration ?? 0;
+  const sectionOver = sectionElapsed > sectionLimit;
+
   const start = async () => {
     await resumeAudioContext();
     reset();
+    sectionTimerRef.current.setSections(DEMO_SECTIONS);
+    sectionTimerRef.current.start();
 
     const client = new DeepgramClient({
       onOpen: () => setConnected(true),
@@ -66,9 +86,7 @@ export default function TestPage() {
           speedRef.current.update(t.words);
 
           const dur =
-            t.words.length >= 2
-              ? t.words.at(-1)!.end - t.words[0].start
-              : null;
+            t.words.length >= 2 ? t.words.at(-1)!.end - t.words[0].start : null;
           const syl =
             t.words.length >= 2
               ? t.words.reduce(
@@ -115,7 +133,9 @@ export default function TestPage() {
       setRunning(true);
     } catch (err) {
       console.error('[test] start failed', err);
+      sectionTimerRef.current.stop();
       client.close();
+      alert(`시작 실패: ${String(err)}`);
     }
   };
 
@@ -125,13 +145,14 @@ export default function TestPage() {
     clientRef.current?.close();
     clientRef.current = null;
     pauseRef.current.destroy();
+    sectionTimerRef.current.stop();
     setRunning(false);
     setConnected(false);
   };
 
   return (
     <div className="min-h-screen bg-black text-white p-8 font-mono text-sm">
-      <h1 className="text-xl mb-6">PRESENT:AI-ON — TASK 03~06 검증</h1>
+      <h1 className="text-xl mb-6">PRESENT:AI-ON — TASK 03~07 검증</h1>
 
       {/* 컨트롤 */}
       <div className="flex gap-3 mb-6">
@@ -157,9 +178,54 @@ export default function TestPage() {
         <Stat label="일시정지" value={`${pauseCount}회`} />
       </div>
 
+      {/* 섹션 타이머 */}
+      <section className="mb-6 border border-zinc-700 rounded p-4">
+        <div className="text-xs text-zinc-400 mb-3">섹션 타이머 (데모: 도입 10s / 본론 20s / 마무리 10s)</div>
+        <div className="flex items-center gap-6 mb-3">
+          <div>
+            <span className="text-zinc-500 text-xs">현재 섹션</span>
+            <div className="text-lg">{currentSection?.name ?? '—'}</div>
+          </div>
+          <div>
+            <span className="text-zinc-500 text-xs">경과 / 제한</span>
+            <div className={sectionOver ? 'text-red-400' : ''}>
+              {sectionElapsed}s / {sectionLimit}s
+              {sectionOver && ' ⚠ 초과'}
+            </div>
+          </div>
+          <div>
+            <span className="text-zinc-500 text-xs">섹션 ({sectionIndex + 1}/{DEMO_SECTIONS.length})</span>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          {DEMO_SECTIONS.map((s, i) => (
+            <div
+              key={i}
+              className={`px-3 py-1 rounded text-xs ${
+                i === sectionIndex
+                  ? 'bg-blue-700 text-white'
+                  : i < sectionIndex
+                  ? 'bg-zinc-700 text-zinc-400'
+                  : 'bg-zinc-800 text-zinc-600'
+              }`}
+            >
+              {s.name} {s.duration}s
+            </div>
+          ))}
+        </div>
+        {running && (
+          <button
+            onClick={() => sectionTimerRef.current.next()}
+            className="mt-3 px-3 py-1 bg-zinc-700 rounded hover:bg-zinc-600 text-xs"
+          >
+            → 다음 섹션
+          </button>
+        )}
+      </section>
+
       {/* 효과음 수동 테스트 */}
       <section className="mb-6">
-        <div className="text-xs text-zinc-400 mb-2">효과음 수동 테스트 (AudioContext 활성화 필요)</div>
+        <div className="text-xs text-zinc-400 mb-2">효과음 수동 테스트</div>
         <div className="flex flex-wrap gap-2">
           {CUE_BUTTONS.map(({ label, type, desc }) => (
             <button
@@ -174,7 +240,7 @@ export default function TestPage() {
         </div>
       </section>
 
-      {/* Filler 카운트 */}
+      {/* Filler */}
       <section className="mb-6">
         <div className="text-xs text-zinc-400 mb-2">Filler 탐지</div>
         {Object.keys(fillerCounts).length === 0 ? (
@@ -219,7 +285,9 @@ export default function TestPage() {
                   [{f.words.map((w) => w.word).join(' / ')}]
                 </span>
                 {f.speed != null && (
-                  <span className={`ml-2 ${f.speed > 6 ? 'text-red-400' : f.speed < 4 ? 'text-blue-400' : 'text-zinc-400'}`}>
+                  <span
+                    className={`ml-2 ${f.speed > 6 ? 'text-red-400' : f.speed < 4 ? 'text-blue-400' : 'text-zinc-400'}`}
+                  >
                     {f.speed.toFixed(1)} 음절/초
                   </span>
                 )}
@@ -231,7 +299,7 @@ export default function TestPage() {
 
       {/* VAD */}
       <section>
-        <div className="text-xs text-zinc-400 mb-1">VAD 이벤트 (최근 6)</div>
+        <div className="text-xs text-zinc-400 mb-1">VAD (최근 6)</div>
         <ul className="space-y-1 text-cyan-300 text-xs">
           {vadLog.length === 0 ? <li>—</li> : vadLog.map((v, i) => <li key={i}>{v}</li>)}
         </ul>

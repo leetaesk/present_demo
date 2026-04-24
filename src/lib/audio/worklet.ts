@@ -4,6 +4,8 @@ export interface AudioPipeline {
   stop: () => void;
 }
 
+let moduleLoaded = false;
+
 export async function startAudioPipeline(
   onChunk: (chunk: ArrayBuffer) => void,
 ): Promise<AudioPipeline> {
@@ -12,7 +14,10 @@ export async function startAudioPipeline(
     await ctx.resume();
   }
 
-  await ctx.audioWorklet.addModule('/audio-worklet.js');
+  if (!moduleLoaded) {
+    await ctx.audioWorklet.addModule('/audio-worklet.js');
+    moduleLoaded = true;
+  }
 
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: {
