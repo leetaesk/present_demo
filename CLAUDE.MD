@@ -8,7 +8,7 @@
 
 | 역할       | 선택                                             |
 | ---------- | ------------------------------------------------ |
-| Framework  | Next.js 15 (App Router)                          |
+| Framework  | Next.js 16 (App Router)                          |
 | STT        | Deepgram Nova-3 (WebSocket)                      |
 | State      | Zustand                                          |
 | Audio In   | Web Audio API + AudioWorkletProcessor            |
