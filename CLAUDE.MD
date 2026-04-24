@@ -9,7 +9,7 @@
 | 역할       | 선택                                             |
 | ---------- | ------------------------------------------------ |
 | Framework  | Next.js 16 (App Router)                          |
-| STT        | Deepgram Nova-3 (WebSocket)                      |
+| STT        | Deepgram Nova-2 (WebSocket, 한국어 안정) — Nova-3는 한국어 미검증 |
 | State      | Zustand                                          |
 | Audio In   | Web Audio API + AudioWorkletProcessor            |
 | Audio Out  | Web Audio API `createOscillator()`               |
@@ -26,7 +26,7 @@
 [마이크]
   └─ getUserMedia()
   └─ AudioWorkletProcessor (PCM16, 16kHz, mono, 100ms chunk)
-       └─ WebSocket ──▶ [Deepgram Nova-3]
+       └─ WebSocket ──▶ [Deepgram Nova-2]
                               │
                    transcript + word_timestamps
                    filler_words 자동 태깅
@@ -47,16 +47,21 @@
 ## 디렉토리 구조
 
 ```
+public/
+└── audio-worklet.js                 # PCM16 프로세서 (JS. Next.js Turbopack이 TS AudioWorklet 빌드 불안정해서 JS로 분리.)
+
 src/
 ├── app/
-│   ├── api/deepgram-token/route.ts   # Edge: API Key → 임시 토큰 발급
+│   ├── api/deepgram-token/route.ts   # Edge: API Key → 임시 JWT 발급 (bearer subprotocol용)
+│   ├── test/page.tsx                 # 검증용 임시 페이지. TASK_02 끝나면 제거.
 │   ├── onboarding/page.tsx
 │   ├── prepare/page.tsx
 │   ├── live/page.tsx
 │   └── summary/page.tsx
 ├── lib/
 │   ├── audio/
-│   │   ├── worklet.ts               # PCM16 변환
+│   │   ├── context.ts               # 싱글턴 AudioContext @ 16kHz
+│   │   ├── worklet.ts               # mic → AudioWorkletNode 초기화 wrapper
 │   │   └── soundCue.ts              # oscillator 효과음
 │   ├── stt/
 │   │   └── deepgramClient.ts        # Deepgram WSS 연결
@@ -83,7 +88,7 @@ src/
 const ws = new WebSocket(
     "wss://api.deepgram.com/v1/listen?" +
         new URLSearchParams({
-            model: "nova-3",
+            model: "nova-2",
             language: "ko",
             filler_words: "true",
             words: "true",
@@ -94,7 +99,7 @@ const ws = new WebSocket(
             sample_rate: "16000",
             channels: "1",
         }),
-    ["token", deepgramToken],
+    ["bearer", deepgramToken],  // /v1/auth/grant JWT는 'bearer' subprotocol. static API key는 'token'.
 );
 
 ws.onmessage = (e) => {
@@ -235,6 +240,41 @@ DEEPGRAM_API_KEY=your_key  # Edge Route에서만 사용. NEXT_PUBLIC_ 없음.
 9. 발표 준비 UI (`app/prepare/`)
 10. 세션 요약 (`app/summary/`)
 11. 온보딩 (`app/onboarding/`)
+
+---
+
+## 진행 상황
+
+- ✅ **TASK_01** — Next.js 16 프로젝트 세팅, `/api/deepgram-token` Edge Route.
+- ✅ **TASK_02** — 전체 파이프라인 검증 완료. mic → PCM16 → Deepgram WSS → transcript/VAD 정상 동작.
+- ⏳ TASK_03~09 대기
+
+### TASK_02 핵심 발견
+- **Deepgram `filler_words`는 영어 전용** (`uh/um/mhmm/...`만 태깅). 한국어는 효과 없음. → **TASK_04 fillerDetector는 [B] 문자열 매칭 확정** (DEFAULT_SETTINGS.fillerWords).
+- **`noiseSuppression: false` 필수**. WebRTC 노이즈 억제가 단음절 "어/음"을 잡음으로 제거함. 끄면 transcript에 단어로 등장.
+- **Nova-2 한국어 단음절 혼동 가능** — "어" → "아"로 인식되는 케이스 있음. 기본 fillerWords 목록에 `"아"` 추가 검토.
+
+### 주요 기술 결정 (스펙과 차이)
+- **모델**: Nova-3 → Nova-2 (한국어 안정). Nova-3 + Korean은 미검증.
+- **WS subprotocol**: `['token', key]`가 아니라 **`['bearer', JWT]`**. Grant API JWT는 bearer 프로토콜.
+- **AudioWorklet 배치**: `src/lib/audio/worklet.processor.ts` → `public/audio-worklet.js`. Next.js 16 Turbopack이 TS AudioWorklet 빌드 불안정.
+- **AudioContext sampleRate**: 16kHz 고정 (`new AudioContext({ sampleRate: 16000 })`). 브라우저가 자동 리샘플링.
+- **getUserMedia**: `noiseSuppression: false`, `autoGainControl: false` (filler 보존). `echoCancellation: true` 유지.
+
+### TASK_02 인터페이스 (후속 태스크 연결점)
+```typescript
+// src/lib/audio/worklet.ts
+startAudioPipeline(onChunk: (ArrayBuffer) => void): Promise<{ stop(): void }>
+
+// src/lib/stt/deepgramClient.ts
+new DeepgramClient({ onOpen, onTranscript, onSpeechStart, onUtteranceEnd, onError, onClose, onRawMessage })
+await client.connect()
+client.send(buffer: ArrayBuffer)
+client.close()
+
+interface DeepgramTranscript { transcript, words[], is_final, speech_final, raw }
+interface DeepgramWord { word, start, end, confidence, punctuated_word? }
+```
 
 ---
 
