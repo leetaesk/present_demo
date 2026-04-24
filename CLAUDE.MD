@@ -195,6 +195,7 @@ const DEFAULT_SETTINGS = {
         "이제",
         "사실",
         "기본적으로",
+        "햄버거",
     ],
     pauseDuration: 3, // 초
     sections: [],
@@ -275,6 +276,13 @@ client.close()
 interface DeepgramTranscript { transcript, words[], is_final, speech_final, raw }
 interface DeepgramWord { word, start, end, confidence, punctuated_word? }
 ```
+
+---
+
+## 개발 규칙
+
+- **태스크는 한 번에 하나씩** — 하나의 TASK가 끝나면 반드시 디버깅·검증 후 다음으로 넘어간다.
+- 검증 없이 여러 TASK를 연속으로 구현하지 않는다.
 
 ---
 
