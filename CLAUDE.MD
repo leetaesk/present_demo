@@ -55,9 +55,9 @@ src/
 │   ├── api/deepgram-token/route.ts   # ✅ Edge: API Key → 임시 JWT 발급 (bearer subprotocol용)
 │   ├── test/page.tsx                 # ✅ TASK_02~08 통합 검증 페이지 (제거 예정)
 │   ├── live/page.tsx                 # ✅ 실시간 발표 화면
-│   ├── onboarding/page.tsx           # ⏳ 미구현
-│   ├── prepare/page.tsx              # ⏳ 미구현
-│   └── summary/page.tsx              # ⏳ 미구현
+│   ├── onboarding/page.tsx           # ✅ 온보딩
+│   ├── prepare/page.tsx              # ✅ 발표 준비 (섹션·필러·속도·침묵 설정)
+│   └── summary/page.tsx              # ✅ 세션 요약
 ├── lib/
 │   ├── audio/
 │   │   ├── context.ts               # ✅ 싱글턴 AudioContext @ 16kHz
@@ -77,7 +77,7 @@ src/
 └── components/
     ├── LiveDashboard.tsx            # ✅ 실시간 대시보드
     ├── SectionProgress.tsx          # ✅ 섹션 진행 바
-    └── SummaryChart.tsx             # ⏳ 미구현
+    └── SummaryChart.tsx             # ✅ CSS 바 차트 (필러·속도 분포)
 ```
 
 ---
@@ -254,7 +254,7 @@ DEEPGRAM_API_KEY=your_key  # Edge Route에서만 사용. NEXT_PUBLIC_ 없음.
 - ✅ **TASK_06** — Pause Detector (`lib/analyzer/pauseDetector.ts`). UtteranceEnd 후 3초 타이머 → pause cue + TTS.
 - ✅ **TASK_07** — Section Timer (`lib/timer/sectionTimer.ts`). 섹션별 제한시간 추적, 초과 시 section cue. `addModule` 중복 등록 버그 수정 (`moduleLoaded` 플래그).
 - ✅ **TASK_08** — Storage (`lib/storage/settings.ts` LocalStorage, `lib/storage/sessions.ts` IndexedDB) + Live UI (`app/live/page.tsx`, `components/LiveDashboard.tsx`, `components/SectionProgress.tsx`).
-- ⏳ TASK_09 대기 (prepare / summary / onboarding)
+- ✅ **TASK_09** — 발표 준비 UI (`app/prepare/page.tsx`), 세션 요약 (`app/summary/page.tsx`, `components/SummaryChart.tsx`), 온보딩 (`app/onboarding/page.tsx`), 홈 네비게이션 (`app/page.tsx`).
 
 ### TASK_02 핵심 발견
 - **Deepgram `filler_words`는 영어 전용** (`uh/um/mhmm/...`만 태깅). 한국어는 효과 없음. → **TASK_04 fillerDetector는 [B] 문자열 매칭 확정** (DEFAULT_SETTINGS.fillerWords).
