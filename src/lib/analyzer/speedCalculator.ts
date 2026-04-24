@@ -7,7 +7,7 @@ interface SpeedSettings {
   max: number;
 }
 
-const DEFAULT_SPEED: SpeedSettings = { min: 4, max: 6 };
+const DEFAULT_SPEED: SpeedSettings = { min: 200, max: 300 }; // 음절/분
 
 export class SpeedCalculator {
   private settings: SpeedSettings;
@@ -35,7 +35,7 @@ export class SpeedCalculator {
       0,
     );
     if (syllables === 0) return null;
-    return syllables / duration;
+    return (syllables / duration) * 60; // 음절/분
   }
 
   setSettings(settings: Partial<SpeedSettings>) {

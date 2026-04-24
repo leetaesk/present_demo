@@ -8,7 +8,7 @@ export interface AppSettings {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  speed: { min: 4, max: 6 },
+  speed: { min: 200, max: 300 }, // 음절/분
   fillerWords: [
     "어", "음", "그", "저", "뭐", "그리고", "근데", "이제", "사실", "기본적으로", "햄버거",
   ],

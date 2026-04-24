@@ -4,7 +4,8 @@ import { useLiveStore } from "../../store/liveStore";
 export interface Section {
   name: string;
   duration: number; // seconds
-  keyword?: string; // pauseDetector TTS 힌트
+  keyword?: string; // 3초 침묵 시 TTS로 읽어줄 다음 섹션 힌트
+  script?: string;  // 참고용 대본 (런타임 미사용)
 }
 
 export class SectionTimer {

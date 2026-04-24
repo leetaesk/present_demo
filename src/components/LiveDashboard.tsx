@@ -22,9 +22,9 @@ export default function LiveDashboard({ sections, onStop, onNextSection }: Props
   const speedColor =
     lastSpeed == null
       ? 'text-zinc-500'
-      : lastSpeed > 6
+      : lastSpeed > 300
       ? 'text-red-400'
-      : lastSpeed < 4
+      : lastSpeed < 200
       ? 'text-blue-400'
       : 'text-green-400';
 
@@ -55,9 +55,9 @@ export default function LiveDashboard({ sections, onStop, onNextSection }: Props
         <Metric
           label="속도"
           value={lastSpeed != null ? `${lastSpeed.toFixed(1)}` : '—'}
-          unit="음절/초"
+          unit="음절/분"
           valueClass={speedColor}
-          sub={lastSpeed != null ? (lastSpeed > 6 ? '빠름' : lastSpeed < 4 ? '느림' : '적정') : ''}
+          sub={lastSpeed != null ? (lastSpeed > 300 ? '빠름' : lastSpeed < 200 ? '느림' : '적정') : ''}
         />
         <Metric
           label="필러"

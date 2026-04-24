@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loadSettings, saveSettings, type AppSettings } from '@/lib/storage/settings';
-import type { Section } from '@/lib/timer/sectionTimer';
 
 export default function PreparePage() {
   const router = useRouter();
@@ -16,19 +15,6 @@ export default function PreparePage() {
     setSettings((s) => ({ ...s, ...patch }));
   };
 
-  // 섹션
-  const addSection = () =>
-    update({ sections: [...settings.sections, { name: '', duration: 60, keyword: '' }] });
-
-  const updateSection = (i: number, patch: Partial<Section>) =>
-    update({
-      sections: settings.sections.map((s, idx) => (idx === i ? { ...s, ...patch } : s)),
-    });
-
-  const removeSection = (i: number) =>
-    update({ sections: settings.sections.filter((_, idx) => idx !== i) });
-
-  // 필러
   const addFiller = () => {
     const word = newFiller.trim();
     if (!word || settings.fillerWords.includes(word)) return;
@@ -51,47 +37,23 @@ export default function PreparePage() {
         <button onClick={() => router.push('/')} className="text-zinc-500 text-sm">← 홈</button>
       </div>
 
-      {/* 섹션 */}
+      {/* 섹션 & 대본 */}
       <section className="mb-8">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">섹션</h2>
-          <button onClick={addSection} className="text-sm px-3 py-1 bg-zinc-800 rounded hover:bg-zinc-700">
-            + 추가
-          </button>
-        </div>
-        {settings.sections.length === 0 ? (
-          <p className="text-zinc-600 text-sm">섹션 없음 — 섹션 타이머를 사용하지 않습니다.</p>
-        ) : (
-          <ul className="space-y-3">
-            {settings.sections.map((s, i) => (
-              <li key={i} className="bg-zinc-900 rounded-xl p-3 flex flex-col gap-2">
-                <div className="flex gap-2">
-                  <input
-                    className="flex-1 bg-zinc-800 rounded px-2 py-1 text-sm outline-none"
-                    placeholder="섹션 이름"
-                    value={s.name}
-                    onChange={(e) => updateSection(i, { name: e.target.value })}
-                  />
-                  <input
-                    type="number"
-                    className="w-20 bg-zinc-800 rounded px-2 py-1 text-sm text-center outline-none"
-                    placeholder="초"
-                    value={s.duration}
-                    min={5}
-                    onChange={(e) => updateSection(i, { duration: Number(e.target.value) })}
-                  />
-                  <button onClick={() => removeSection(i)} className="text-zinc-500 hover:text-red-400 px-1">✕</button>
-                </div>
-                <input
-                  className="bg-zinc-800 rounded px-2 py-1 text-sm outline-none text-zinc-400"
-                  placeholder="키워드 (3초 침묵 시 TTS로 읽어줌, 선택)"
-                  value={s.keyword ?? ''}
-                  onChange={(e) => updateSection(i, { keyword: e.target.value })}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
+        <h2 className="font-semibold mb-3">섹션 & 대본</h2>
+        <button
+          onClick={() => router.push('/prepare/script')}
+          className="w-full flex items-center justify-between px-4 py-4 bg-zinc-900 hover:bg-zinc-800 rounded-xl transition-colors"
+        >
+          <div className="text-left">
+            <div className="font-medium">대본 & 섹션 설정</div>
+            <div className="text-sm text-zinc-500 mt-0.5">
+              {settings.sections.length > 0
+                ? `${settings.sections.length}개 섹션 · 총 ${settings.sections.reduce((a, s) => a + s.duration, 0)}초`
+                : '섹션 없음 — 눌러서 설정'}
+            </div>
+          </div>
+          <span className="text-zinc-500 text-lg">→</span>
+        </button>
       </section>
 
       {/* 필러 단어 */}
@@ -119,15 +81,15 @@ export default function PreparePage() {
 
       {/* 속도 */}
       <section className="mb-8">
-        <h2 className="font-semibold mb-3">속도 기준 (음절/초)</h2>
-        <div className="flex items-center gap-4">
+        <h2 className="font-semibold mb-3">속도 기준 (음절/분)</h2>
+        <div className="flex items-center gap-4 mb-2">
           <div className="flex flex-col items-center gap-1">
             <span className="text-xs text-zinc-500">최소 (느림 경고)</span>
             <input
               type="number"
               className="w-20 bg-zinc-800 rounded px-2 py-2 text-center outline-none"
               value={settings.speed.min}
-              min={1} max={10} step={0.5}
+              min={60} max={400} step={10}
               onChange={(e) => update({ speed: { ...settings.speed, min: Number(e.target.value) } })}
             />
           </div>
@@ -138,11 +100,15 @@ export default function PreparePage() {
               type="number"
               className="w-20 bg-zinc-800 rounded px-2 py-2 text-center outline-none"
               value={settings.speed.max}
-              min={1} max={15} step={0.5}
+              min={60} max={500} step={10}
               onChange={(e) => update({ speed: { ...settings.speed, max: Number(e.target.value) } })}
             />
           </div>
         </div>
+        <p className="text-xs text-zinc-500">
+          적절한 발표 속도는 <span className="text-zinc-300">230~270 음절/분</span>이에요.
+          <span className="text-zinc-600"> (출처: 한국어 명료 발화 연구, PMC 2019)</span>
+        </p>
       </section>
 
       {/* 침묵 */}

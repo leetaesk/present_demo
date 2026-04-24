@@ -279,7 +279,7 @@ export default function TestPage() {
 
       {/* 속도 */}
       <section className="mb-6">
-        <div className="text-xs text-zinc-400 mb-2">속도 (음절/초, 기준 4~6)</div>
+        <div className="text-xs text-zinc-400 mb-2">속도 (음절/분, 기준 200~300)</div>
         <div className="flex gap-6">
           <Stat label="최근" value={lastSpeed != null ? lastSpeed.toFixed(1) : '—'} />
           <Stat label="평균" value={avgSpeed != null ? avgSpeed.toFixed(1) : '—'} />
@@ -307,9 +307,9 @@ export default function TestPage() {
                 </span>
                 {f.speed != null && (
                   <span
-                    className={`ml-2 ${f.speed > 6 ? 'text-red-400' : f.speed < 4 ? 'text-blue-400' : 'text-zinc-400'}`}
+                    className={`ml-2 ${f.speed > 300 ? 'text-red-400' : f.speed < 200 ? 'text-blue-400' : 'text-zinc-400'}`}
                   >
-                    {f.speed.toFixed(1)} 음절/초
+                    {Math.round(f.speed)} 음절/분
                   </span>
                 )}
               </li>
@@ -368,7 +368,7 @@ export default function TestPage() {
                 <span className="ml-2 text-blue-300">pause {s.pauseCount}회</span>
                 {s.speedHistory.length > 0 && (
                   <span className="ml-2 text-green-300">
-                    avg {(s.speedHistory.reduce((a, b) => a + b, 0) / s.speedHistory.length).toFixed(1)} 음절/초
+                    avg {Math.round(s.speedHistory.reduce((a, b) => a + b, 0) / s.speedHistory.length)} 음절/분
                   </span>
                 )}
               </li>

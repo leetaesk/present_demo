@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 const FEATURES = [
   { icon: '🎤', title: '실시간 음성 인식', desc: 'Deepgram이 발표 음성을 실시간으로 분석합니다.' },
   { icon: '🔔', title: '이어폰 효과음 피드백', desc: '필러어·속도·침묵을 소리로 즉시 알려줍니다.' },
-  { icon: '⏱', title: '섹션 타이머', desc: '섹션별 제한 시간을 초과하면 경고음이 울립니다.' },
+  { icon: '🔁', title: '리허설', desc: '발표 전 리허설 모드로 실전처럼 연습할 수 있습니다.' },
   { icon: '📊', title: '세션 요약', desc: '발표 후 필러·속도·침묵 통계를 확인할 수 있습니다.' },
 ];
 
@@ -37,12 +37,6 @@ export default function OnboardingPage() {
           className="py-4 rounded-2xl bg-green-600 hover:bg-green-500 text-white text-lg font-bold"
         >
           시작하기 →
-        </button>
-        <button
-          onClick={() => router.push('/live')}
-          className="py-3 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
-        >
-          바로 발표 시작
         </button>
       </div>
     </div>
